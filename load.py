@@ -12,23 +12,14 @@ import pandas as pd
 from pandas.io import sql
 import time
 import math
+from math import sqrt
 
-
-'''
-conn = mysql.connector.connect(host='localhost',
-                               database='meteo',
-                               user='meteo',
-                               password='meteo')
-#if conn.is_connected():
-#  print('Connected to MySQL database')
-
-
-conn.autocommit = True
-cursor = conn.cursor()
-'''
+# ------------------ config start ---------------------#
+MTM_TempFac=200         # Larger the number --> Positive t2m has LARGER influence on melting falling snow (default=200)
+MTM_TriangleFac=700     # Larger the number --> Positive t2m AND positive zeroChgt have SMALLER influence on melting (default=500)
+# ------------------- config end ----------------------#
 
 csvdir="input_csv"
-fileprefix="matrixstats"
 location="Zagreb"
 master = pd.DataFrame()
 dflist = []
@@ -42,7 +33,7 @@ df = {}
 
 sources = [["matrixstats","cldave","cld",0], \
           ["matrixstats","precave","prec",0], \
-          ["matrixstats","precpct","prec",1], \
+          ["matrixstats","precpct","prec",2], \
           ["matrixstats","upthrpct","up",2], \
           ["matrixstats","rdrmax","rdr",0], \
           ["matrixstats","capeave","capep1",0], \
@@ -77,33 +68,39 @@ rf['weather'] = "None"
 rf['precpctfinal'] = "None"
 rf['snowpct'] = "None"
 rf['rainpct'] = "None"
+rf['tstormpct'] = "None"
+rf['precpctdisp'] = str("None")
+rf['snowpctdisp'] = str("None")
+rf['tstormpctdisp'] = str("None")
 
 
 start_time = time.time()
 
 # B) Calculate final precipitation probability
-rf.loc[(rf['precpctfinal'] == "None"), 'precpctfinal'] = np.clip((rf['precpct'] + (np.clip((rf['rdrmax'] - 20),0,None)/2) + (np.clip((rf['cldave'] - 60),0,None)/4)),0,100).apply(lambda x: round(x,0))
+rf.loc[(rf['precpctfinal'] == "None"), 'precpctfinal'] = np.clip((rf['precpct'] + (np.clip((rf['rdrmax'] - 20),0,None)/2) + np.clip((rf['cldave'] - 60),0,None)/4),0,100).apply(lambda x: round(x,0))
 
 # C) Calculate snow probability
-zeroChgt = np.clip(rf['h0'],0,None).apply(lambda x: round(x,0))
-
-# MeteoAdriatic Triangle method <start>
-# ------------------ config start ---------------------#
-MTM_TempFac=200         # Larger the number --> Positive t2m has LARGER influence on melting falling snow (default=200)
-MTM_TriangleFac=700     # Larger the number --> Positive t2m AND positive zeroChgt have SMALLER influence on melting (default=500)
-# ------------------- config end ----------------------#
-#triangle = np.clip(((np.clip(rf['h0'],0,None).apply(lambda x: round(x,0)) + MTM_TempFac * rf['t2m'])/2),0,None).apply(lambda x: round(x,3))
-#                    triangle=$(bc <<< "scale=3;((${zeroChgt}+${MTM_TempFac}*${t2m_arr[$i]})/2)")  # defines influence ratio of 0CHGT and t2m
-#                    if [ 1 -eq "$(echo "${triangle} < 0" | bc)" ]
-#                    then
-#                        triangle=0
-#                    fi
-#snowpct = np.clip(rf['precpctfinal']*(1 - triangle / MTM_TriangleFac),0,100)
 rf.loc[(rf['snowpct'] == "None"), 'snowpct'] = np.clip(rf['precpctfinal']*(1 - (np.clip(((np.clip(rf['h0'],0,None).apply(lambda x: round(x,0)) + MTM_TempFac * rf['t2m'])/2),0,None).apply(lambda x: round(x,3))) / MTM_TriangleFac),0,100).apply(lambda x: round(x,0))
-#                    snowpct=$(bc <<< "scale=3;(${precpct}*(1-(${triangle}/${MTM_TriangleFac})))")     # defines snow probab. for triangle size
-                # MeteoAdriatic Triangle method <end>
 rf.loc[(rf['rainpct'] == "None"), 'rainpct'] = np.clip((rf['precpctfinal']-rf['snowpct']),0,100).apply(lambda x: round(x,0))
 
+# D) Calculate tstorm probability
+
+rf.loc[(rf['tstormpct'] == "None") & (rf['rdrmax'] >= 35), 'tstormpct'] = (((rf['upthrpct'])**(0.5))*14+rf['rdrmax']-40+(rf['capeave'])**(0.5)*2-15).apply(lambda x: round(x,0))
+rf.loc[(rf['tstormpct'] == "None") & (rf['rdrmax'] < 35), 'tstormpct'] = ((rf['precpctfinal']/100)*((rf['capeave'])**(0.5))*2-15).apply(lambda x: round(x,0))
+
+# E) Limit precipitation, snow and tstorm probabilities into range 1-90 %
+
+rf.loc[(rf['precpctfinal'] < 1), 'precpctdisp'] = '<1%'
+rf.loc[(rf['precpctfinal'] > 90), 'precpctdisp'] = '>90%'
+rf.loc[(rf['precpctdisp'] == "None"), 'precpctdisp'] = rf['precpctfinal'].astype(str) + '%'
+
+rf.loc[(rf['snowpct'] < 1), 'snowpctdisp'] = '<1%'
+rf.loc[(rf['snowpct'] > 90), 'snowpctdisp'] = '>90%'
+rf.loc[(rf['snowpctdisp'] == "None"), 'snowpctdisp'] = rf['snowpct'].astype(str) + '%'
+
+rf.loc[(rf['tstormpct'] < 1), 'tstormpctdisp'] = '<1%'
+rf.loc[(rf['tstormpct'] > 90), 'tstormpctdisp'] = '>90%'
+rf.loc[(rf['tstormpctdisp'] == "None"), 'tstormpctdisp'] = rf['tstormpct'].astype(str) + '%'
 
 # F) Clouds and rain
 rf.loc[(rf['precave'] > 4) & (rf['precpct'] > 20) & (rf['cldave'] < 50) & (rf['weather'] == 'None'), 'weather'] = '7.png'
@@ -122,34 +119,8 @@ rf.loc[(rf['cldave'] > 0) & (rf['weather'] == 'None'), 'weather'] = '2.png'
 rf.loc[rf['weather'] == 'None', 'weather'] = "1.png"
 
 
-
-'''
-                rdmx=$(bc <<< "scale=3;(${rdrmax_arr[$i]}-20)")
-                if [ 1 -eq "$(echo "${rdmx} < 0" | bc)" ] ; then rdmx=0 ; fi
-                clav=$(bc <<< "scale=3;(${cldave_arr[$i]}-60)")
-                if [ 1 -eq "$(echo "${clav} < 0" | bc)" ] ; then clav=0 ; fi
-                precpct=$(bc <<< "scale=3;(${precpct_arr[$i]}+${rdmx}/2+${clav}/4)")
-                precpct=`printf "%.0f\n" ${precpct}`
-                if [ 1 -eq "$(echo "${precpct} < 0" | bc)" ]
-                then
-                    precpct=0
-                fi
-                if [ 1 -eq "$(echo "${precpct} > 100" | bc)" ]
-                then
-                    precpct=100
-                fi
-                if [ "$precpct" == "-0" ] ; then precpct=0 ; fi
-
-'''
 elapsed_time = time.time() - start_time
 
 print(elapsed_time)
 print(rf.to_string())
-
-
-  
-'''
-cursor.close()
-
-conn.close()
-''' 
+print(rf.dtypes)
