@@ -72,6 +72,7 @@ rf['tstormpct'] = "None"
 rf['precpctdisp'] = str("None")
 rf['snowpctdisp'] = str("None")
 rf['tstormpctdisp'] = str("None")
+rf['tstorm'] = str("-")
 
 
 start_time = time.time()
@@ -118,6 +119,9 @@ rf.loc[(rf['cldave'] > 15) & (rf['weather'] == 'None'), 'weather'] = '3.png'
 rf.loc[(rf['cldave'] > 0) & (rf['weather'] == 'None'), 'weather'] = '2.png'
 rf.loc[rf['weather'] == 'None', 'weather'] = "1.png"
 
+# G) Additional T-Storm flag
+rf.loc[(rf['rdrmax'] > 55) & (rf['upthrpct'] > 20) & (rf['tstormpct'] > 60), 'tstorm'] = '202.png'        # grmljavinsko nevrijeme
+rf.loc[(rf['rdrmax'] > 38) & (rf['upthrpct'] > 5) & (rf['tstormpct'] > 30), 'tstorm'] = '201.png'         # grmljavina
 
 elapsed_time = time.time() - start_time
 
