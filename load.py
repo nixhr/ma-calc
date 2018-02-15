@@ -73,6 +73,7 @@ rf['precpctdisp'] = str("None")
 rf['snowpctdisp'] = str("None")
 rf['tstormpctdisp'] = str("None")
 rf['tstorm'] = str("-")
+rf['fog'] = str("-")
 
 
 start_time = time.time()
@@ -122,6 +123,34 @@ rf.loc[rf['weather'] == 'None', 'weather'] = "1.png"
 # G) Additional T-Storm flag
 rf.loc[(rf['rdrmax'] > 55) & (rf['upthrpct'] > 20) & (rf['tstormpct'] > 60), 'tstorm'] = '202.png'        # grmljavinsko nevrijeme
 rf.loc[(rf['rdrmax'] > 38) & (rf['upthrpct'] > 5) & (rf['tstormpct'] > 30), 'tstorm'] = '201.png'         # grmljavina
+
+# H) Winter weather
+
+rf.loc[(rf['precave'] > 2.5 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 1.0 )  &  (rf['cldave']  < 50.0 )  &  (rf['t2m'] < 5.0 )  &  (rf['d2m'] < 2.0), 'weather'] = '10.png'     # promjenjivo oblačno, jak snijeg
+rf.loc[(rf['precave'] > 0.5 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 1.0 )  &  (rf['cldave']  < 50.0 )  &  (rf['t2m'] < 5.0 )  &  (rf['d2m'] < 2.0), 'weather'] = '9.png'      # promjenjivo oblačno, umjeren snijeg
+rf.loc[(rf['precave'] > 0.0 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 1.0 )  &  (rf['cldave']  < 50.0 )  &  (rf['t2m'] < 5.0 )  &  (rf['d2m'] < 2.0), 'weather'] = '8.png'      # promjenjivo oblačno, slab snijeg
+rf.loc[(rf['precave'] > 2.5 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 1.0 )  &  (rf['cldave']  < 85.0 )  &  (rf['t2m'] < 5.0 )  &  (rf['d2m'] < 2.0), 'weather'] = '19.png'     # pretežno oblačno, jak snijeg
+rf.loc[(rf['precave'] > 0.5 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 1.0 )  &  (rf['cldave']  < 85.0 )  &  (rf['t2m'] < 5.0 )  &  (rf['d2m'] < 2.0), 'weather'] = '18.png'     # pretežno oblačno, umjeren snijeg
+rf.loc[(rf['precave'] > 0.0 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 1.0 )  &  (rf['cldave']  < 85.0 )  &  (rf['t2m'] < 5.0 )  &  (rf['d2m'] < 2.0), 'weather'] = '17.png'     # pretežno oblačno, slab snijeg
+rf.loc[(rf['precave'] > 2.5 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 1.0 )  &  (rf['t2m']     <  5.0 )  &  (rf['d2m'] < 2.0), 'weather'] = '28.png'     # jak snijeg 
+rf.loc[(rf['precave'] > 0.5 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 1.0 )  &  (rf['t2m']     <  5.0 )  &  (rf['d2m'] < 2.0), 'weather'] = '27.png'     # umjeren snijeg 
+rf.loc[(rf['precave'] > 0.0 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 1.0 )  &  (rf['t2m']     <  5.0 )  &  (rf['d2m'] < 2.0), 'weather'] = '26.png'     # slab snijeg 
+rf.loc[(rf['precave'] > 4.0 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 5.0 )  &  (rf['cldave']  < 50.0 )  &  (rf['t2m'] < 6.0 )  &  (rf['d2m'] < 3.0), 'weather'] = '13.png'     # promjenjivo oblačno, jaka susnježica
+rf.loc[(rf['precave'] > 1.0 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 5.0 )  &  (rf['cldave']  < 50.0 )  &  (rf['t2m'] < 6.0 )  &  (rf['d2m'] < 3.0), 'weather'] = '12.png'     # promjenjivo oblačno, umjerena susnježica
+rf.loc[(rf['precave'] > 0.0 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 5.0 )  &  (rf['cldave']  < 50.0 )  &  (rf['t2m'] < 6.0 )  &  (rf['d2m'] < 3.0), 'weather'] = '11.png'     # promjenjivo oblačno, slaba susnježica
+rf.loc[(rf['precave'] > 4.0 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 5.0 )  &  (rf['cldave']  < 85.0 )  &  (rf['t2m'] < 6.0 )  &  (rf['d2m'] < 3.0), 'weather'] = '22.png'     # pretežno oblačno, jaka susnježica
+rf.loc[(rf['precave'] > 1.0 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 5.0 )  &  (rf['cldave']  < 85.0 )  &  (rf['t2m'] < 6.0 )  &  (rf['d2m'] < 3.0), 'weather'] = '21.png'     # pretežno oblačno, umjerena susnježica
+rf.loc[(rf['precave'] > 0.0 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 5.0 )  &  (rf['cldave']  < 85.0 )  &  (rf['t2m'] < 6.0 )  &  (rf['d2m'] < 3.0), 'weather'] = '20.png'     # pretežno oblačno, slaba susnježica
+rf.loc[(rf['precave'] > 4.0 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 5.0 )  &  (rf['t2m']     <  6.0 )  &  (rf['d2m'] < 3.0), 'weather'] = '31.png'     # jaka susnježica 
+rf.loc[(rf['precave'] > 1.0 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 5.0 )  &  (rf['t2m']     <  6.0 )  &  (rf['d2m'] < 3.0), 'weather'] = '30.png'     # umjerena susnježica 
+rf.loc[(rf['precave'] > 0.0 )  &  (rf['precpctfinal']  > 20.0)  &  ((rf['rainpct']+0.001)/(rf['snowpct']+0.001) < 5.0 )  &  (rf['t2m']     <  6.0 )  &  (rf['d2m'] < 3.0), 'weather'] = '29.png'     # slaba susnježica
+
+# I) Additional fog flag
+# fog="-" po defaultu vec popunjen
+rf.loc[(rf['precave']  < 0.2) & (rf['h2m'] > 99.0) & (rf['mslp'] > 1010) & (rf['wspd'] < 2.5) & (rf['cldave'] < 101.0) & (rf['tstorm'] != '-'), 'fog'] =  '302.png'     # jaka magla, updateamo fog samo ako nije tstorm
+rf.loc[(rf['precave']  < 0.2) & (rf['h2m'] > 99.0) & (rf['mslp'] > 1010) & (rf['wspd'] < 2.5) & (rf['cldave'] < 101.0) , 'weather'] =  '102.png' # kad su zadovoljeni isti uvjeti updejtami i weather jer je oblacno, ali ne diramo fog
+
+rf.loc[(rf['precave']  < 0.6) & (rf['h2m'] > 95.0) & (rf['mslp'] > 1005) & (rf['wspd'] < 4.0) & (rf['cldave'] < 101.0) & (rf['tstorm'] != '-'), 'fog'] =  '301.png'       # slaba magla , updateamo fog samo ako nije tstorm
 
 elapsed_time = time.time() - start_time
 
