@@ -104,6 +104,7 @@ rf['tstormpct'] = np.nan
 rf['precpctdisp'] = np.nan
 rf['snowpctdisp'] = np.nan
 rf['tstormpctdisp'] = np.nan
+rf['h2mdisp'] = np.nan
 rf['tstorm'] = str("-")
 rf['fog'] = str("-")
 #rf['nightsym']=np.nan
@@ -242,6 +243,8 @@ def modweather(image):
   if image == '20.png':  return  '52.png' 
   if image == '21.png':  return  '53.png' 
   if image == '22.png':  return  '54.png' 
+  return image
+
 
 rf.loc[rf['daynight'] == 'night', 'weather'] = rf['weather'].apply(lambda x: modweather(x))
 # K) Static WIND corrections
@@ -351,16 +354,70 @@ rf.ymd = rf.date.apply(lambda x: x.strftime('%Y-%m-%d'))
 
 #j = (rf.groupby(['ymd','weekday'], as_index=False).apply(lambda x: x[['hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast'}).to_json(orient='records'))
 
-a=rf[['ymd','weekday','hour','weather']]
-j=a.groupby(['ymd', 'weekday'],as_index=False).apply(lambda x: x[['hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast'}).to_json(orient='records')
+ff=rf.rename(index=str, columns={'altt2m': 'temperature',\
+                             'd2m': 'dewpoint',\
+                             'h2mdisp':'humidity',\
+                             'precave':'prec',\
+                             'snowpctdisp':'snowpct',\
+                             'tstormpctdisp': 'tstormpct',\
+                             'h0':'h0m'})
 
-#print (b.to_string())
+'''
+                                        "hour": "${currenthour}",
+                                        "weather": "${weather}",
+                                        "tstorm": "${tstorm}",
+                                        "fog": "${fog}",
+                                        "wind": "${wind}",
+                                        "wspd": "${wspd}",
+                                        "gust": "${gust}",
+                                        "wdir": "${wdir}",
+                                        "temperature": "${altt2m}",
+                                        "dewpoint": "${d2m}",
+                                        "humidity": "${h2mdisp}",
+                                        "precpct": "${precpctdisp}",
+                                        "prec": "${precave}",
+                                        "snowpct": "${snowpctdisp}",
+                                        "tstormpct": "${tstormpctdisp}",
+                                        "mslp": "${mslp}",
+                                        "h0m": "${h0}",
+                                        "t850": "${t850}",
+                                        "mlcape": "${mlcape}"
+'''
+
+
+a=ff[['location','ymd','weekday','hour','weather','tstorm','fog','wind','wspd','gust','wdir','temperature','dewpoint','humidity','precpct','prec','snowpct','tstormpct','mslp','h0m','t850','mlcape']]
+#a=rf[['ymd','weekday','hour','weather']]
+#j=a.groupby('location')[['ymd', 'weekday','hour','weather']].apply(lambda x: x[['ymd', 'weekday','hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast', 'ymd':'date'}).to_json(orient='records')
+
+#a=rf[['location','ymd','weekday','hour','weather']]
+#a.set_index(['location', 'ymd'], inplace=True)
+#j=a.groupby(level=[0,1]).apply(lambda x: x[['hour','weather']].to_dict('r')).to_json(orient='records')
+
+# RADIj=a.groupby(['ymd', 'weekday'],as_index=False).apply(lambda x: x[['hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast'}).to_json(orient='records')
+j=a.groupby(['ymd', 'weekday'],as_index=False).apply(lambda x: x[['hour','weather','tstorm','fog','wind','wspd','gust','wdir','temperature','dewpoint','humidity','precpct','prec','snowpct','tstormpct','mslp','h0m','t850','mlcape']].to_dict('r')).reset_index().rename(columns={0:'forecast'})
+
+#j=a.groupby('location', as_index=False).apply(lambda x: x).reset_index().groupby(['ymd', 'weekday'],as_index=False).apply(lambda x: x[['hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast'}).to_json(orient='records')
+
+#j=a.groupby('ymd', as_index=True)[['hour','weather']].apply(lambda x: x[['hour','weather']].to_dict(orient='index')).to_json(orient='index')
+
 #print (daygroups)
-     
-#print(json.dumps(json.loads(j), indent=2, sort_keys=True))
+
+locations = {}
+for locgrp, locdf in a.groupby('location'):
+#  print('Group: %s' % locgrp)
+#  print('DataFrame description: \n%s\n' % locdf)
+  my_dict = {'location': locgrp , 'data': j.to_dict('r')}
+#  for dategrp, datedf in locdf.groupby(['ymd','weekday']):
+    #my_dict["data"].append({'date' : dategrp[0], 'weekday' : dategrp[1], 'forecast' : []})
+#  my_dict["data"].append({json.loads(j).astype(str)})
+
+#my_dict["data"].append(j.to_dict('r'))
+
+
+print(json.dumps(my_dict, indent=2, sort_keys=False))
 
 elapsed_time = time.time() - start_time
 
-print(elapsed_time)
-print(rf.to_string())
+#print(elapsed_time)
+#print(rf.to_string())
 #print(rf.dtypes)
