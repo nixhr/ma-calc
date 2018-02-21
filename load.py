@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
 import ephem
 from datetime import datetime
@@ -20,7 +21,7 @@ import pdb
 
 # ------------------ config start ---------------------#
 MTM_TempFac=200         # Larger the number --> Positive t2m has LARGER influence on melting falling snow (default=200)
-MTM_TriangleFac=700     # Larger the number --> Positive t2m AND positive zeroChgt have SMALLER influence on melting (default=500)
+MTM_TriangleFac=750     # Larger the number --> Positive t2m AND positive zeroChgt have SMALLER influence on melting (default=500)
 # ------------------- config end ----------------------#
 
 csvdir="input_csv"
@@ -129,7 +130,8 @@ start_time = time.time()
 rf.loc[(rf['precpctfinal'].isnull()), 'precpctfinal'] = np.clip((rf['precpct'] + (np.clip((rf['rdrmax'] - 20),0,None)/2) + np.clip((rf['cldave'] - 60),0,None)/4),0,100).apply(lambda x: round(x,0))
 
 # C) Calculate snow probability
-rf.loc[(rf['snowpct'].isnull()), 'snowpct'] = np.clip(rf['precpctfinal']*(1 - (np.clip(((np.clip(rf['h0'],0,None).apply(lambda x: round(x,0)) + MTM_TempFac * rf['t2m'])/2),0,None).apply(lambda x: round(x,3))) / MTM_TriangleFac),0,100).apply(lambda x: round(x,0))
+#rf.loc[(rf['snowpct'].isnull()), 'snowpct'] = np.clip(rf['precpctfinal']*(1 - (np.clip(((np.clip(rf['h0'],0,None).apply(lambda x: round(x,0)) + MTM_TempFac * rf['t2m'])/2),0,None).apply(lambda x: round(x,3))) / MTM_TriangleFac),0,100).apply(lambda x: round(x,0))
+rf.loc[(rf['snowpct'].isnull()), 'snowpct'] = np.clip(rf['precpctfinal']*(1 - (np.clip(((np.clip(rf['h0'],0,None).apply(lambda x: round(x,0)) + MTM_TempFac * rf['t2m'])/2 - 4*(100-rf['h2m']) ),0,None).apply(lambda x: round(x,3))) / MTM_TriangleFac),0,100).apply(lambda x: round(x,0))
 rf.loc[(rf['rainpct'].isnull()), 'rainpct'] = np.clip((rf['precpctfinal']-rf['snowpct']),0,100).apply(lambda x: round(x,0))
 
 # D) Calculate tstorm probability
@@ -261,7 +263,7 @@ rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 157.5 ) & (rf['wspd'] > 15 ) , [
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 112.5 ) & (rf['wspd'] > 15 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'SE','95.png']
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 67.5  ) & (rf['wspd'] > 15 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'E' ,'94.png']
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 22.5  ) & (rf['wspd'] > 15 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'NE','101.png']
-rf.loc[(rf['winddone'].isnull()) & (rf['wd']  < 22.5  ) & (rf['wspd'] > 15 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'N' ,'100.png']
+rf.loc[(rf['winddone'].isnull()) & (rf['wd']  <= 22.5  ) & (rf['wspd'] > 15 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'N' ,'100.png']
 
 # jak vjetar
 
@@ -273,7 +275,7 @@ rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 157.5 ) & (rf['wspd'] > 10 ) , [
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 112.5 ) & (rf['wspd'] > 10 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'SE','87.png']
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 67.5  ) & (rf['wspd'] > 10 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'E' ,'86.png']
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 22.5  ) & (rf['wspd'] > 10 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'NE','93.png']
-rf.loc[(rf['winddone'].isnull()) & (rf['wd']  < 22.5  ) & (rf['wspd'] > 10 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'N' ,'92.png']
+rf.loc[(rf['winddone'].isnull()) & (rf['wd']  <= 22.5  ) & (rf['wspd'] > 10 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'N' ,'92.png']
 
 # umjeren vjetar
 
@@ -285,7 +287,7 @@ rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 157.5 ) & (rf['wspd'] > 4 ) , ['
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 112.5 ) & (rf['wspd'] > 4 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'SE','79.png']
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 67.5  ) & (rf['wspd'] > 4 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'E' ,'78.png']
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 22.5  ) & (rf['wspd'] > 4 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'NE','85.png']
-rf.loc[(rf['winddone'].isnull()) & (rf['wd']  < 22.5  ) & (rf['wspd'] > 4 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'N' ,'84.png']
+rf.loc[(rf['winddone'].isnull()) & (rf['wd']  <= 22.5  ) & (rf['wspd'] > 4 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'N' ,'84.png']
 
 # slab vjetar
 
@@ -297,7 +299,7 @@ rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 157.5 ) & (rf['wspd'] >= 1 ) , [
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 112.5 ) & (rf['wspd'] >= 1 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'SE','67.png']
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 67.5  ) & (rf['wspd'] >= 1 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'E' ,'66.png']
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 22.5  ) & (rf['wspd'] >= 1 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'NE','65.png']
-rf.loc[(rf['winddone'].isnull()) & (rf['wd']  < 22.5  ) & (rf['wspd'] >= 1 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'N' ,'77.png']
+rf.loc[(rf['winddone'].isnull()) & (rf['wd']  <= 22.5  ) & (rf['wspd'] >= 1 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'N' ,'77.png']
 
 # tišina ili slab vjetar promjenjiva smjera
 
@@ -309,7 +311,7 @@ rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 157.5 ) & (rf['wspd'] < 1 ) , ['
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 112.5 ) & (rf['wspd'] < 1 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'SE','64.png']
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 67.5  ) & (rf['wspd'] < 1 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'E' ,'64.png']
 rf.loc[(rf['winddone'].isnull()) & (rf['wd']  > 22.5  ) & (rf['wspd'] < 1 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'NE','64.png']
-rf.loc[(rf['winddone'].isnull()) & (rf['wd']  < 22.5  ) & (rf['wspd'] < 1 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'N' ,'64.png']
+rf.loc[(rf['winddone'].isnull()) & (rf['wd']  <= 22.5  ) & (rf['wspd'] < 1 ) , ['winddone', 'winddir', 'wind']] =  ['1', 'N' ,'64.png']
 
 # Reset precipitation amount to 0.0 if weather symbol does not contain precipitation
 rf.loc[(rf['weather'].isin([ '1.png', '2.png', '3.png', '4.png', '102.png', '32.png', '33.png', '34.png', '35.png' ])), 'precave'] = '0.0'
@@ -354,7 +356,8 @@ rf.ymd = rf.date.apply(lambda x: x.strftime('%Y-%m-%d'))
 
 #j = (rf.groupby(['ymd','weekday'], as_index=False).apply(lambda x: x[['hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast'}).to_json(orient='records'))
 
-a=rf[['location','ymd','weekday','hour','weather','tstorm','fog','wind','wspd','gust','wdir','altt2m','d2m','h2mdisp','precpct','prec','snowpct','tstormpct','mslp','h0','t850','mlcape']]
+#print(rf.to_string())
+a=rf[['location','ymd','weekday','hour','weather','tstorm','fog','wind','wspd','gust','wdir','altt2m','d2m','h2mdisp','precpct','prec','snowpct','tstormpctdisp','mslp','h0','t850','mlcape']]
 
 ff=a.rename(index=str, columns={'altt2m': 'temperature',\
                              'ymd': 'date',\
@@ -421,5 +424,5 @@ print(json.dumps(my_dict, indent=2, sort_keys=False))
 elapsed_time = time.time() - start_time
 
 #print(elapsed_time)
-#print(rf.to_string())
+#print(ff.to_string())
 #print(rf.dtypes)
