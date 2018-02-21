@@ -354,7 +354,10 @@ rf.ymd = rf.date.apply(lambda x: x.strftime('%Y-%m-%d'))
 
 #j = (rf.groupby(['ymd','weekday'], as_index=False).apply(lambda x: x[['hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast'}).to_json(orient='records'))
 
-ff=rf.rename(index=str, columns={'altt2m': 'temperature',\
+a=rf[['location','ymd','weekday','hour','weather','tstorm','fog','wind','wspd','gust','wdir','altt2m','d2m','h2mdisp','precpct','prec','snowpct','tstormpct','mslp','h0','t850','mlcape']]
+
+ff=a.rename(index=str, columns={'altt2m': 'temperature',\
+                             'ymd': 'date',\
                              'd2m': 'dewpoint',\
                              'h2mdisp':'humidity',\
                              'precave':'prec',\
@@ -385,7 +388,6 @@ ff=rf.rename(index=str, columns={'altt2m': 'temperature',\
 '''
 
 
-a=ff[['location','ymd','weekday','hour','weather','tstorm','fog','wind','wspd','gust','wdir','temperature','dewpoint','humidity','precpct','prec','snowpct','tstormpct','mslp','h0m','t850','mlcape']]
 #a=rf[['ymd','weekday','hour','weather']]
 #j=a.groupby('location')[['ymd', 'weekday','hour','weather']].apply(lambda x: x[['ymd', 'weekday','hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast', 'ymd':'date'}).to_json(orient='records')
 
@@ -394,7 +396,7 @@ a=ff[['location','ymd','weekday','hour','weather','tstorm','fog','wind','wspd','
 #j=a.groupby(level=[0,1]).apply(lambda x: x[['hour','weather']].to_dict('r')).to_json(orient='records')
 
 # RADIj=a.groupby(['ymd', 'weekday'],as_index=False).apply(lambda x: x[['hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast'}).to_json(orient='records')
-j=a.groupby(['ymd', 'weekday'],as_index=False).apply(lambda x: x[['hour','weather','tstorm','fog','wind','wspd','gust','wdir','temperature','dewpoint','humidity','precpct','prec','snowpct','tstormpct','mslp','h0m','t850','mlcape']].to_dict('r')).reset_index().rename(columns={0:'forecast'})
+j=ff.groupby(['date', 'weekday'],as_index=False).apply(lambda x: x[['hour','weather','tstorm','fog','wind','wspd','gust','wdir','temperature','dewpoint','humidity','precpct','prec','snowpct','tstormpct','mslp','h0m','t850','mlcape']].to_dict('r')).reset_index().rename(columns={0:'forecast'})
 
 #j=a.groupby('location', as_index=False).apply(lambda x: x).reset_index().groupby(['ymd', 'weekday'],as_index=False).apply(lambda x: x[['hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast'}).to_json(orient='records')
 
