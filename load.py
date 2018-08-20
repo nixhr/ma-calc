@@ -129,6 +129,7 @@ start_time = time.time()
 # B) Calculate final precipitation probability
 rf.loc[(rf['precpctfinal'].isnull()), 'precpctfinal'] = np.clip((rf['precpct'] + (np.clip((rf['rdrmax'] - 20),0,None)/2) + np.clip((rf['cldave'] - 60),0,None)/4),0,100).apply(lambda x: round(x,0))
 
+
 # C) Calculate snow probability
 #rf.loc[(rf['snowpct'].isnull()), 'snowpct'] = np.clip(rf['precpctfinal']*(1 - (np.clip(((np.clip(rf['h0'],0,None).apply(lambda x: round(x,0)) + MTM_TempFac * rf['t2m'])/2),0,None).apply(lambda x: round(x,3))) / MTM_TriangleFac),0,100).apply(lambda x: round(x,0))
 rf.loc[(rf['snowpct'].isnull()), 'snowpct'] = np.clip(rf['precpctfinal']*(1 - (np.clip(((np.clip(rf['h0'],0,None).apply(lambda x: round(x,0)) + MTM_TempFac * rf['t2m'])/2 - 4*(100-rf['h2m']) ),0,None).apply(lambda x: round(x,3))) / MTM_TriangleFac),0,100).apply(lambda x: round(x,0))
@@ -141,9 +142,16 @@ rf.loc[(rf['tstormpct'].isnull()) & (rf['rdrmax'] < 35), 'tstormpct'] = ((rf['pr
 
 # E) Limit precipitation, snow and tstorm probabilities into range 1-90 %
 
+intc = ['tstormpct', 'snowpct', 'precpctfinal']
+rf[intc] = rf[intc].applymap(np.int64)
+
 rf.loc[(rf['precpctfinal'] < 1), 'precpctdisp'] = '<1%'
 rf.loc[(rf['precpctfinal'] > 90), 'precpctdisp'] = '>90%'
 rf.loc[(rf['precpctdisp'].isnull()), 'precpctdisp'] = rf['precpctfinal'].astype(str) + '%'
+
+#ff[intcols] = ff[intcols].apply(lambda x: pd.Series.round(x, 0))
+#ff[intcols] = ff[intcols].applymap(np.int64)
+#ff = ff.applymap(str)
 
 rf.loc[(rf['snowpct'] < 1), 'snowpctdisp'] = '<1%'
 rf.loc[(rf['snowpct'] > 90), 'snowpctdisp'] = '>90%'
@@ -196,10 +204,18 @@ rf.loc[(rf['winterdone'].isnull()) & (rf['precave'] > 0.0 )  &  (rf['precpctfina
 
 rf.rtspct_ratio=(rf['rainpct']+0.001)/(rf['snowpct']+0.001)
 
+with open("/tmp/meteo/rf_prefog.table", "w") as rfprefog_file:
+    print(rf.to_string(), file=rfprefog_file)
+
 # I) Additional fog flag
 # fog="-" po defaultu vec popunjen
-rf.loc[(rf['fogdone'].isnull()) & (rf['precave']  < 0.2) & (rf['h2m'] > 99.0) & (rf['mslp'] > 1010) & (rf['wspd'] < 2.5) & (rf['cldave'] < 101.0) & (rf['tstorm'] != '-'), ['fogdone', 'weather', 'fog']] = ['1', '102.png', '302.png']     # jaka magla, updateamo fog i weather samo ako nije tstorm 
-rf.loc[(rf['fogdone'].isnull()) & (rf['precave']  < 0.6) & (rf['h2m'] > 95.0) & (rf['mslp'] > 1005) & (rf['wspd'] < 4.0) & (rf['cldave'] < 101.0) & (rf['tstorm'] != '-'), ['fogdone', 'fog']] =  ['1', '301.png']       # slaba magla , updateamo fog samo ako nije tstorm
+rf.loc[(rf['fogdone'].isnull()) & (rf['precave']  < 0.2) & (rf['h2m'] > 99.0) & (rf['mslp'] > 1010) & (rf['wspd'] < 2.5) & (rf['cldave'] < 101.0) , ['fogdone', 'weather', 'fog']] = ['1', '102.png', '302.png']     # jaka magla, updateamo fog i weather samo ako nije tstorm 
+rf.loc[(rf['fogdone'].isnull()) & (rf['precave']  < 0.6) & (rf['h2m'] > 95.0) & (rf['mslp'] > 1005) & (rf['wspd'] < 4.0) & (rf['cldave'] < 101.0) , ['fogdone', 'fog']] =  ['1', '301.png']       # slaba magla , updateamo fog samo ako nije tstorm
+
+rf.loc[rf['tstorm'] != "-", 'fog'] = '-'
+
+with open("/tmp/meteo/rf_postfog.table", "w") as rfpostfog_file:
+    print(rf.to_string(), file=rfpostfog_file)
 
 # J) Night symbols (this should be programmed to take in account ACTUAL sun position, but...)
 
@@ -356,8 +372,14 @@ rf.ymd = rf.date.apply(lambda x: x.strftime('%Y-%m-%d'))
 
 #j = (rf.groupby(['ymd','weekday'], as_index=False).apply(lambda x: x[['hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast'}).to_json(orient='records'))
 
+with open("/tmp/meteo/rf.table", "w") as rf_file:
+    print(rf.to_string(), file=rf_file)
+
 #print(rf.to_string())
-a=rf[['location','ymd','weekday','hour','weather','tstorm','fog','wind','wspd','gust','wdir','altt2m','d2m','h2mdisp','precpct','prec','snowpct','tstormpctdisp','mslp','h0','t850','mlcape']]
+a=rf[['location','ymd','weekday','hour','weather','tstorm','fog','wind','wspd','gust','wdir','altt2m','d2m','h2mdisp','precpctdisp','precave','snowpctdisp','tstormpctdisp','mslp','h0','t850','mlcape']]
+
+with open("/tmp/meteo/a.table", "w") as a_file:
+    print(a.to_string(), file=a_file)
 
 ff=a.rename(index=str, columns={'altt2m': 'temperature',\
                              'ymd': 'date',\
@@ -365,47 +387,20 @@ ff=a.rename(index=str, columns={'altt2m': 'temperature',\
                              'h2mdisp':'humidity',\
                              'precave':'prec',\
                              'snowpctdisp':'snowpct',\
+                             'precpctdisp':'precpct',\
                              'tstormpctdisp': 'tstormpct',\
                              'h0':'h0m'})
 
-'''
-                                        "hour": "${currenthour}",
-                                        "weather": "${weather}",
-                                        "tstorm": "${tstorm}",
-                                        "fog": "${fog}",
-                                        "wind": "${wind}",
-                                        "wspd": "${wspd}",
-                                        "gust": "${gust}",
-                                        "wdir": "${wdir}",
-                                        "temperature": "${altt2m}",
-                                        "dewpoint": "${d2m}",
-                                        "humidity": "${h2mdisp}",
-                                        "precpct": "${precpctdisp}",
-                                        "prec": "${precave}",
-                                        "snowpct": "${snowpctdisp}",
-                                        "tstormpct": "${tstormpctdisp}",
-                                        "mslp": "${mslp}",
-                                        "h0m": "${h0}",
-                                        "t850": "${t850}",
-                                        "mlcape": "${mlcape}"
-'''
+intcols = ['mlcape', 'wdir', 'mslp', 't850', 'gust', 'h0m', 'wspd',  'temperature', 'dewpoint', 'humidity']
+ff[intcols] = ff[intcols].apply(lambda x: pd.Series.round(x, 0))
+ff[intcols] = ff[intcols].applymap(np.int64)
+ff = ff.applymap(str)
 
+with open("/tmp/meteo/ff.table", "w") as ff_file:
+    print(ff.to_string(), file=ff_file)
 
-#a=rf[['ymd','weekday','hour','weather']]
-#j=a.groupby('location')[['ymd', 'weekday','hour','weather']].apply(lambda x: x[['ymd', 'weekday','hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast', 'ymd':'date'}).to_json(orient='records')
-
-#a=rf[['location','ymd','weekday','hour','weather']]
-#a.set_index(['location', 'ymd'], inplace=True)
-#j=a.groupby(level=[0,1]).apply(lambda x: x[['hour','weather']].to_dict('r')).to_json(orient='records')
-
-# RADIj=a.groupby(['ymd', 'weekday'],as_index=False).apply(lambda x: x[['hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast'}).to_json(orient='records')
 j=ff.groupby(['date', 'weekday'],as_index=False).apply(lambda x: x[['hour','weather','tstorm','fog','wind','wspd','gust','wdir','temperature','dewpoint','humidity','precpct','prec','snowpct','tstormpct','mslp','h0m','t850','mlcape']].to_dict('r')).reset_index().rename(columns={0:'forecast'})
 
-#j=a.groupby('location', as_index=False).apply(lambda x: x).reset_index().groupby(['ymd', 'weekday'],as_index=False).apply(lambda x: x[['hour','weather']].to_dict('r')).reset_index().rename(columns={0:'forecast'}).to_json(orient='records')
-
-#j=a.groupby('ymd', as_index=True)[['hour','weather']].apply(lambda x: x[['hour','weather']].to_dict(orient='index')).to_json(orient='index')
-
-#print (daygroups)
 
 locations = {}
 for locgrp, locdf in a.groupby('location'):
@@ -419,7 +414,8 @@ for locgrp, locdf in a.groupby('location'):
 #my_dict["data"].append(j.to_dict('r'))
 
 
-print(json.dumps(my_dict, indent=2, sort_keys=False))
+with open("/tmp/meteo/json", "w") as json_file:
+  print(json.dumps(my_dict, indent=2, sort_keys=False), file=json_file)
 
 elapsed_time = time.time() - start_time
 
