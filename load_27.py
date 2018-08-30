@@ -25,11 +25,12 @@ import sys
 import getopt
 
 # defaults
+providersfile = '/tmp/ma/providers.txt'
 locfile = '/tmp/ma/locations.txt'
 csvdir  = '/tmp/ma/csv'
 jsondir = '/tmp/ma/json'
 
-options, remainder = getopt.getopt(sys.argv[1:], 'l:c:j:', ['locfile=', 'csvdir=', 'jsondir=', ])
+options, remainder = getopt.getopt(sys.argv[1:], 'l:c:j:p:', ['locfile=', 'csvdir=', 'jsondir=', 'providersfile=', ])
 print('OPTIONS   :', options)
 
 for opt, arg in options:
@@ -37,8 +38,10 @@ for opt, arg in options:
         locfile = arg
     elif opt in ('-c', '--csvdir'):
         csvdir = arg
-    elif opt in ('-j', '--version'):
+    elif opt in ('-j', '--jsondir'):
         jsondir = arg
+    elif opt in ('-p', '--providersfile'):
+        providersfile = arg
 
 #print('locfile   :', locfile)
 #print('csvdir    :', csvdir)
