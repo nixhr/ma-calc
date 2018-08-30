@@ -22,10 +22,30 @@ import json
 import pdb
 import codecs
 import sys
+import getopt
 
-locfile = sys.argv[1]
-csvdir = sys.argv[2]
-jsondir = sys.argv[3]
+# defaults
+locfile = '/tmp/ma/locations.txt'
+csvdir  = '/tmp/ma/csv'
+jsondir = '/tmp/ma/json'
+
+options, remainder = getopt.getopt(sys.argv[1:], 'l:c:j:', ['locfile=', 'csvdir=', 'jsondir=', ])
+print('OPTIONS   :', options)
+
+for opt, arg in options:
+    if opt in ('-l', '--locfile'):
+        locfile = arg
+    elif opt in ('-c', '--csvdir'):
+        csvdir = arg
+    elif opt in ('-j', '--version'):
+        jsondir = arg
+
+#print('locfile   :', locfile)
+#print('csvdir    :', csvdir)
+#print('jsondir   :', jsondir)
+#print('REMAINING :', remainder)
+
+#sys.exit()
 
 # ------------------ config start ---------------------#
 MTM_TempFac=200         # Larger the number --> Positive t2m has LARGER influence on melting falling snow (default=200)
