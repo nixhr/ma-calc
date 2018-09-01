@@ -23,15 +23,21 @@ import pdb
 import codecs
 import sys
 import getopt
+import glob
+import os
+
+pd.options.display.width = 700
+pd.options.display.max_columns = 150
 
 # defaults
 providersfile = '/tmp/ma/providers.txt'
 locfile = '/tmp/ma/locations.txt'
 csvdir  = '/tmp/ma/csv'
 jsondir = '/tmp/ma/json'
+verbose = False
 
-options, remainder = getopt.getopt(sys.argv[1:], 'l:c:j:p:', ['locfile=', 'csvdir=', 'jsondir=', 'providersfile=', ])
-print('OPTIONS   :', options)
+options, remainder = getopt.getopt(sys.argv[1:], 'l:c:j:p:v', ['locfile=', 'csvdir=', 'jsondir=', 'providersfile=','verbose', ])
+if verbose: print('OPTIONS   :', options)
 
 for opt, arg in options:
     if opt in ('-l', '--locfile'):
@@ -42,33 +48,22 @@ for opt, arg in options:
         jsondir = arg
     elif opt in ('-p', '--providersfile'):
         providersfile = arg
-
-#print('locfile   :', locfile)
-#print('csvdir    :', csvdir)
-#print('jsondir   :', jsondir)
-#print('REMAINING :', remainder)
-
-#sys.exit()
+    elif opt in ('-v', '--verbose'):
+        verbose = True
 
 # ------------------ config start ---------------------#
 MTM_TempFac=200         # Larger the number --> Positive t2m has LARGER influence on melting falling snow (default=200)
 MTM_TriangleFac=750     # Larger the number --> Positive t2m AND positive zeroChgt have SMALLER influence on melting (default=500)
 # ------------------- config end ----------------------#
 
-#csvdir="input_csv"
-
-#location="Zagreb"
-#lat='45.80'
-#lon='16.00'
-#height=100
-#altlat=45.80
-#altlon=16.00
-#altheight=100
-
 # Read locations file
 with open(locfile, 'r') as f:
     reader = csv.reader(f, delimiter=' ', skipinitialspace=True)
     locations_list = list(reader)
+
+with open(providersfile, 'r') as p:
+    reader2 = csv.reader(p, delimiter=' ', skipinitialspace=True)
+    providers_list = list(reader2)
 
 for loc in locations_list:
     location=loc[0]
@@ -82,7 +77,11 @@ for loc in locations_list:
     if float(altlat) != 0:
 
         dflist = []
+        dflist2 = []
+        dflist3 = []
         df = {}
+        df2 = {}
+        rf2 = {}
 
         # csv sources list
         # fields:
@@ -113,25 +112,39 @@ for loc in locations_list:
                 ["extract","wspd","wspd",0]]
         #sources = [["cldave","cld",0]]
 
-        for i in range(len(sources)):
-            filename=str(csvdir) + "/" + sources[i][0] + "_" + str(location) + "_" + sources[i][2]
-            varname=str(sources[i][1])
-            field=int(sources[i][3])
-            df[varname] = pd.read_csv(filename, header=None, usecols=[field], names=[varname], dtype=np.float64)
-            dflist.append(df[varname])
-            rf = pd.concat(dflist, axis=1)
-
+        for prov in range(len(providers_list)):
+            dflist2 = []
+            for i in range(len(sources)):
+                filename=str(csvdir) + "/" + str(providers_list[prov][0]) + "/" + sources[i][0] + "_" + str(location) + "_" + sources[i][2]
+                varname=str(sources[i][1])
+                field=int(sources[i][3])
+                if os.path.exists(filename):
+                    df2[varname] = pd.read_csv(filename, header=None, usecols=[field], names=[varname], dtype=np.float64)
+                    dflist2.append(df2[varname])
+                    rf2[prov] = pd.concat(dflist2, axis=1)
+                    if verbose: print(filename, varname)
+                else:
+                    if verbose: print('not found:', filename, varname)
+            if verbose: pprint(providers_list[prov][0], width=400)
+            if verbose: pprint(rf2[prov]) 
+        df_concat = pd.concat(rf2)
+        rf3 = df_concat.groupby(level=1).mean()
+        if verbose: pprint(rf3) 
 
         #import dates
         dateparse = lambda x: pd.datetime.strptime(x, '%Y-%m-%d_%H:%M')
         df['date'] = pd.read_csv(csvdir + '/dates', header=None, parse_dates=[0], names=['date'],date_parser=dateparse)
         dflist.append(df['date'])
-        rf = pd.concat(dflist, axis=1)
 
         #import weekdays
         df['weekday'] = pd.read_csv(csvdir + '/weekdays', header=None, usecols=[0], names=['weekday'])
         dflist.append(df['weekday'])
-        rf = pd.concat(dflist, axis=1)
+
+        #create dates&weekdays table
+        rf4 = pd.concat(dflist, axis=1)
+
+        #merge dates&weekdays with data
+        rf = pd.concat([rf4, rf3], axis=1, join_axes=[rf4.index])
 
         # temporary
         rf['location']=location
@@ -172,7 +185,8 @@ for loc in locations_list:
 
 
         start_time = time.time()
-
+        if verbose: pprint(rf)
+#        sys.exit()
         # B) Calculate final precipitation probability
         rf.loc[(rf['precpctfinal'].isnull()), 'precpctfinal'] = np.clip((rf['precpct'] + (np.clip((rf['rdrmax'] - 20),0,None)/2) + np.clip((rf['cldave'] - 60),0,None)/4),0,100).apply(lambda x: round(x,0))
 
@@ -413,6 +427,7 @@ for loc in locations_list:
         rf.mslp = rf.mslp.apply(lambda x: round(x,0))
         rf.mlcape = rf.mlcape.apply(lambda x: round(x,0))
         rf.h0 = np.clip((rf.h0.apply(lambda x: round(x,0))),0, None)
+        rf.precave = rf.precave.apply(lambda x: round(float(x),1))
         rf.t850 = rf.t850.apply(lambda x: round(x,0))
         rf.hour = rf.date.apply(lambda x: x.strftime('%H:%M'))
         rf.ymd = rf.date.apply(lambda x: x.strftime('%Y-%m-%d'))
